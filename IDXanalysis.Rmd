@@ -1,0 +1,158 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+syms<-c("000300.SH","000016.SH")
+
+for(sy in syms){
+  loadRData(sy)
+}
+
+alignSymbols(syms)
+
+
+
+
+
+```
+
+1. 指数不同点位下未来的收益
+不同点位区间下，未来X天的收益，最大收益，最大亏损
+最大收益和最大亏损计算有误，需调整
+```{r}
+
+source(file.path(substr(getwd(), 1, 22), "header.R"))
+
+sym <- "000001.SH"
+yieldDays <- 750
+
+
+loadRData(sym)
+
+applyInd(
+  sym,
+  fun.name = "Return.calculateX",
+  arguments = list(x = get(sym), column = "close"),
+  label = "dailyReturn"
+)
+
+applyInd(
+  sym,
+  fun.name = "rollapplyX",
+  arguments = list(
+    x = get(sym),
+    column = "dailyReturn",
+    width = yieldDays,
+    FUN = "Return.cumulative"
+  ),
+  label = paste0("cumReturn", yieldDays, "D")
+)
+
+applyInd(
+  sym = sym,
+  fun.name = "rollapplyX",
+  arguments = list(
+    x = get(sym),
+    column = "dailyReturn",
+    width = yieldDays,
+    FUN = "maxDrawdown"
+  ),
+  label = paste0("maxDown", yieldDays)
+)
+
+
+applyInd(
+  sym = sym,
+  fun.name = "rollapplyX",
+  arguments = list(
+    x = get(sym),
+    column = "dailyReturn",
+    width = yieldDays,
+    FUN = "maxRunup"
+  ),
+  label = paste0("maxRunup", yieldDays)
+)
+
+
+applyInd(
+  sym,
+  fun.name = "leadX",
+  arguments = list(
+    x = get(sym),
+    column = paste0("cumReturn", yieldDays, "D"),
+    k = yieldDays
+  ),
+  label = paste0("leadR", yieldDays, "D")
+)
+
+applyInd(
+  sym,
+  fun.name = "leadX",
+  arguments = list(
+    x = get(sym),
+    column = paste0("maxDown", yieldDays),
+    k = yieldDays
+  ),
+  label = paste0("leadmaxD", yieldDays, "D")
+)
+
+applyInd(
+  sym,
+  fun.name = "leadX",
+  arguments = list(
+    x = get(sym),
+    column = paste0("maxRunup", yieldDays),
+    k = yieldDays
+  ),
+  label = paste0("leadmaxUp", yieldDays, "D")
+) 
+
+mydata<-as.data.frame(get(sym)[,c(4,5,13:15)])
+names(mydata)<-c("close","pe","leadR","leadmaxD","leadmaxR")
+
+mydata<-mydata%>%mutate(close.inter=cut(round(pe,0),15))%>%mutate(maxRD=leadmaxR/leadmaxD)
+
+ydata<-mydata
+
+
+ggplot(ydata,aes(x=close,y=leadR))+geom_point(shape=1)+
+  geom_hline(aes(yintercept=0))+
+  geom_vline(aes(xintercept=2900))+ggtitle("不同上证综指点位未来一年收益分布")
+ggplot(ydata,aes(x=close,y=leadmaxR))+geom_point(shape=1)+
+  geom_hline(aes(yintercept=0))+
+  geom_vline(aes(xintercept=2900))+ggtitle("不同上证综指点位未来一年最大涨幅分布")
+ggplot(ydata,aes(x=close,y=leadmaxD))+geom_point(shape=1)+
+  geom_hline(aes(yintercept=0))+
+  geom_vline(aes(xintercept=2900))+ggtitle("不同上证综指点位未来一年最大回撤分布")
+ggplot(ydata,aes(x=close,y=maxRD))+geom_point(shape=1,size=0.5)+
+  geom_hline(aes(yintercept=1))+
+  geom_vline(aes(xintercept=2900))+ggtitle("不同上证综指点位未来一年最大涨幅比最大回撤分布")
+
+
+
+ggplot(ydata,aes(x=pe,y=leadR))+geom_point(shape=1)+
+  geom_hline(aes(yintercept=0))+
+  geom_vline(aes(xintercept=13))+ggtitle("不同上证综指PE未来一年收益分布")
+ggplot(ydata,aes(x=pe,y=leadmaxR))+geom_point(shape=1)+
+  geom_hline(aes(yintercept=0))+
+  geom_vline(aes(xintercept=13))+ggtitle("不同上证综指PE未来一年最大涨幅分布")
+ggplot(ydata,aes(x=pe,y=leadmaxD))+geom_point(shape=1,size=0.5)+
+  geom_hline(aes(yintercept=0))+
+  geom_vline(aes(xintercept=13))+ggtitle("不同上证综指PE未来一年最大回撤分布")
+  
+
+ydata%>%group_by(close.inter)%>%summarise(mR=median(leadR,na.rm=T),mD=median(leadmaxD,na.rm=T),mU=median(leadmaxR,na.rm=T))
+ggplot(ydata,aes(leadR))+facet_grid(close.inter~.)+geom_histogram(bins=100)
+
+
+```
+
+
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
