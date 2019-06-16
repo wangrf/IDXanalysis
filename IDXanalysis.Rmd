@@ -26,7 +26,7 @@ alignSymbols(syms)
 source(file.path(substr(getwd(), 1, 22), "header.R"))
 
 sym <- "000001.SH"
-yieldDays <- 750
+yieldDays <- 250
 
 
 loadRData(sym)
@@ -50,6 +50,29 @@ applyInd(
   label = paste0("cumReturn", yieldDays, "D")
 )
 
+maxDrawdown.fromNow<-function(R,geometric=T){
+  
+  x = checkData(R)
+    if (geometric) 
+      Return.cumulative = cumprod(1 + x)
+    else Return.cumulative = 1 + cumsum(x)
+ min(0, min(Return.cumulative-1))
+  
+}
+
+maxRunup.fromNow <- function(R,geometric=T){
+  
+  x = checkData(R)
+    if (geometric) 
+      Return.cumulative = cumprod(1 + x)
+    else Return.cumulative = 1 + cumsum(x)
+  max(Return.cumulative-1)
+  
+  
+}
+
+
+
 applyInd(
   sym = sym,
   fun.name = "rollapplyX",
@@ -57,7 +80,7 @@ applyInd(
     x = get(sym),
     column = "dailyReturn",
     width = yieldDays,
-    FUN = "maxDrawdown"
+    FUN = "maxDrawdown.fromNow"
   ),
   label = paste0("maxDown", yieldDays)
 )
@@ -70,7 +93,7 @@ applyInd(
     x = get(sym),
     column = "dailyReturn",
     width = yieldDays,
-    FUN = "maxRunup"
+    FUN = "maxRunup.fromNow"
   ),
   label = paste0("maxRunup", yieldDays)
 )
@@ -86,6 +109,9 @@ applyInd(
   ),
   label = paste0("leadR", yieldDays, "D")
 )
+
+
+
 
 applyInd(
   sym,
@@ -115,36 +141,37 @@ names(mydata)<-c("close","pe","leadR","leadmaxD","leadmaxR")
 mydata<-mydata%>%mutate(close.inter=cut(round(pe,0),15))%>%mutate(maxRD=leadmaxR/leadmaxD)
 
 ydata<-mydata
+rownames(ydata)<-index(get(sym))
 
 
-ggplot(ydata,aes(x=close,y=leadR))+geom_point(shape=1)+
+ggplot(ydata,aes(x=close,y=leadR))+geom_point(shape=1,size=0.8)+
   geom_hline(aes(yintercept=0))+
   geom_vline(aes(xintercept=2900))+ggtitle("不同上证综指点位未来一年收益分布")
-ggplot(ydata,aes(x=close,y=leadmaxR))+geom_point(shape=1)+
+ggplot(ydata,aes(x=close,y=leadmaxR))+geom_point(shape=1,size=0.8)+
   geom_hline(aes(yintercept=0))+
   geom_vline(aes(xintercept=2900))+ggtitle("不同上证综指点位未来一年最大涨幅分布")
-ggplot(ydata,aes(x=close,y=leadmaxD))+geom_point(shape=1)+
+ggplot(ydata,aes(x=close,y=leadmaxD))+geom_point(shape=1,size=0.8)+
   geom_hline(aes(yintercept=0))+
   geom_vline(aes(xintercept=2900))+ggtitle("不同上证综指点位未来一年最大回撤分布")
-ggplot(ydata,aes(x=close,y=maxRD))+geom_point(shape=1,size=0.5)+
+ggplot(ydata,aes(x=close,y=maxRD))+geom_point(shape=1,size=0.8)+
   geom_hline(aes(yintercept=1))+
   geom_vline(aes(xintercept=2900))+ggtitle("不同上证综指点位未来一年最大涨幅比最大回撤分布")
 
 
 
-ggplot(ydata,aes(x=pe,y=leadR))+geom_point(shape=1)+
+ggplot(ydata,aes(x=pe,y=leadR))+geom_point(shape=1,size=0.8)+
   geom_hline(aes(yintercept=0))+
   geom_vline(aes(xintercept=13))+ggtitle("不同上证综指PE未来一年收益分布")
-ggplot(ydata,aes(x=pe,y=leadmaxR))+geom_point(shape=1)+
+ggplot(ydata,aes(x=pe,y=leadmaxR))+geom_point(shape=1,size=0.8)+
   geom_hline(aes(yintercept=0))+
   geom_vline(aes(xintercept=13))+ggtitle("不同上证综指PE未来一年最大涨幅分布")
-ggplot(ydata,aes(x=pe,y=leadmaxD))+geom_point(shape=1,size=0.5)+
+ggplot(ydata,aes(x=pe,y=leadmaxD))+geom_point(shape=1,size=0.8)+
   geom_hline(aes(yintercept=0))+
   geom_vline(aes(xintercept=13))+ggtitle("不同上证综指PE未来一年最大回撤分布")
+ggplot(ydata[abs(ydata$maxRD)<10,],aes(x=pe,y=maxRD))+geom_point(shape=1,size=0.8)+
+  geom_hline(aes(yintercept=1))+
+  geom_vline(aes(xintercept=13))+ggtitle("不同上证综指点位未来一年最大涨幅比最大回撤分布")
   
-
-ydata%>%group_by(close.inter)%>%summarise(mR=median(leadR,na.rm=T),mD=median(leadmaxD,na.rm=T),mU=median(leadmaxR,na.rm=T))
-ggplot(ydata,aes(leadR))+facet_grid(close.inter~.)+geom_histogram(bins=100)
 
 
 ```
