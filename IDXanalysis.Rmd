@@ -135,8 +135,8 @@ applyInd(
   label = paste0("leadmaxUp", yieldDays, "D")
 ) 
 
-mydata<-as.data.frame(get(sym)[,c(4,5,13:15)])
-names(mydata)<-c("close","pe","leadR","leadmaxD","leadmaxR")
+mydata<-as.data.frame(get(sym)[,c(4,5,8,13:15)])
+names(mydata)<-c("close","pe","dividendyield","leadR","leadmaxD","leadmaxR")
 
 mydata<-mydata%>%mutate(close.inter=cut(round(pe,0),15))%>%mutate(maxRD=leadmaxR/leadmaxD)
 
@@ -153,7 +153,7 @@ ggplot(ydata,aes(x=close,y=leadmaxR))+geom_point(shape=1,size=0.8)+
 ggplot(ydata,aes(x=close,y=leadmaxD))+geom_point(shape=1,size=0.8)+
   geom_hline(aes(yintercept=0))+
   geom_vline(aes(xintercept=2900))+ggtitle("不同上证综指点位未来一年最大回撤分布")
-ggplot(ydata,aes(x=close,y=maxRD))+geom_point(shape=1,size=0.8)+
+ggplot(ydata[abs(ydata$maxRD)<5,],aes(x=close,y=maxRD))+geom_point(shape=1,size=0.8)+
   geom_hline(aes(yintercept=1))+
   geom_vline(aes(xintercept=2900))+ggtitle("不同上证综指点位未来一年最大涨幅比最大回撤分布")
 
@@ -176,6 +176,67 @@ ggplot(ydata[abs(ydata$maxRD)<10,],aes(x=pe,y=maxRD))+geom_point(shape=1,size=0.
 
 ```
 
+1. 极端假设，没有择时择股能力，全凭运气
+策略：买入一直持有至到期
+```{r}
+
+
+ggplot(ydata,aes(x=close,y=leadR))+geom_point(shape=1,size=0.8)+
+  geom_hline(aes(yintercept=0))+
+  geom_vline(aes(xintercept=2900))+ggtitle("不同上证综指点位未来一年收益分布")
+
+groupdata.close<-ydata%>%mutate(close.cut=cut(close,seq(1000,6200,by = 200),dig.lab=0,labels=paste0(seq(1100,6200,by=200),"±100")))%>%group_by(close.cut)%>%
+  summarise(mean.r=mean(leadR,na.rm=T),
+            median.r=median(leadR,na.rm=T),
+            sd.r=sd(leadR,na.rm=T),
+            quantile10=quantile(leadR,0.1,na.rm=T),
+            quantile90=quantile(leadR,0.9,na.rm=T),
+            sharp.r=mean.r/sd.r)
+groupdata.close
+ggplot(groupdata.close,aes(x=close.cut,y=sharp.r))+geom_bar(stat="identity")+
+  theme(axis.text.x=element_text(angle=90))+ggtitle("不同上证综指未来一年收益平均值分布")
+
+
+
+
+
+ggplot(ydata,aes(x=pe,y=leadR))+geom_point(shape=1,size=0.8)+
+  geom_hline(aes(yintercept=0))+
+  geom_vline(aes(xintercept=13))+ggtitle("不同上证综指PE未来一年收益分布")
+
+groupdata.pe<-ydata%>%mutate(pe.cut=cut(pe,seq(8,70,by = 2),dig.lab=0,labels=paste0(seq(9,69,by=2),"±1")))%>%group_by(pe.cut)%>%
+  summarise(mean.r=mean(leadR,na.rm=T),
+            median.r=median(leadR,na.rm=T),
+            sd.r=sd(leadR,na.rm=T),
+            quantile10=quantile(leadR,0.1,na.rm=T),
+            quantile90=quantile(leadR,0.9,na.rm=T),
+            sharp.r=mean.r/sd.r)
+
+ggplot(groupdata.pe,aes(x=pe.cut,y=sharp.r))+geom_bar(stat="identity")+
+  theme(axis.text.x=element_text(angle=90))+ggtitle("不同上证综指PE未来一年收益平均值分布")
+
+
+
+
+
+ggplot(ydata,aes(x=dividendyield,y=leadR))+geom_point(shadividendyield=1,size=0.8)+
+  geom_hline(aes(yintercept=0))+
+  geom_vline(aes(xintercept=2.2))+ggtitle("不同上证综指dividendyield未来一年收益分布")
+
+groupdata.dividendyield<-ydata%>%mutate(dividendyield.cut=cut(dividendyield,seq(8,70,by = 2),dig.lab=0,labels=paste0(seq(9,69,by=2),"±1")))%>%group_by(dividendyield.cut)%>%
+  summarise(mean.r=mean(leadR,na.rm=T),
+            median.r=median(leadR,na.rm=T),
+            sd.r=sd(leadR,na.rm=T),
+            quantile10=quantile(leadR,0.1,na.rm=T),
+            quantile90=quantile(leadR,0.9,na.rm=T),
+            sharp.r=mean.r/sd.r)
+
+ggplot(groupdata.dividendyield,aes(x=dividendyield.cut,y=sharp.r))+geom_bar(stat="identity")+
+  theme(axis.text.x=element_text(angle=90))+ggtitle("不同上证综指dividendyield未来一年收益平均值分布")
+
+
+
+```
 
 
 Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
